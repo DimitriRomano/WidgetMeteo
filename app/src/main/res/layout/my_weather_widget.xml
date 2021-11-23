@@ -2,7 +2,9 @@
     style="@style/Widget.MyWeatherApp.AppWidget.Container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:theme="@style/Theme.MyWeatherApp.AppWidgetContainer">
+    android:theme="@style/Theme.MyWeatherApp.AppWidgetContainer"
+    >
+
 
     <TextView
         android:id="@+id/appwidget_text"

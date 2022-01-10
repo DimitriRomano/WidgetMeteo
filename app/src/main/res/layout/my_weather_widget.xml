@@ -1,21 +1,41 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     style="@style/Widget.MyWeatherApp.AppWidget.Container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:theme="@style/Theme.MyWeatherApp.AppWidgetContainer"
-    >
+    android:theme="@style/Theme.MyWeatherApp.AppWidgetContainer">
 
 
     <TextView
         android:id="@+id/appwidget_text"
         style="@style/Widget.MyWeatherApp.AppWidget.InnerView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:layout_margin="1dp"
+        android:layout_width="258dp"
+        android:layout_height="132dp"
+        android:layout_centerInParent="true"
+        android:layout_marginStart="1dp"
+        android:layout_marginTop="1dp"
+        android:layout_marginEnd="1dp"
+        android:layout_marginBottom="1dp"
         android:contentDescription="@string/appwidget_text"
         android:text="@string/appwidget_text"
         android:textSize="24sp"
         android:textStyle="bold|italic" />
+
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="132dp"
+        app:cardCornerRadius="10dp"
+        >
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/sky"
+        ></LinearLayout>
+
+
+
+    </androidx.cardview.widget.CardView>
+    
 </RelativeLayout>

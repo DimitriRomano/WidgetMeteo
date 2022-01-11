@@ -1,48 +1,35 @@
 package com.romano.dimitri.myweatherapp;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+
 
 import android.Manifest;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.location.Address;
-import android.location.Geocoder;
-import android.location.Location;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
+
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
+
 import com.android.volley.toolbox.Volley;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnSuccessListener;
+
 import com.romano.dimitri.myweatherapp.databinding.ActivityMainBinding;
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+
 
 public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private Context mContext;
     private static final String TAG = "MainActivity";
-    private static final int MULTIPLE_LOCATION_REQUEST = 42;
     private String mCityLocation;
     private ArrayList<WeatherRVModal> weatherRVModalArrayList;
     private WeatherRVAdapter weatherRVAdapter;
@@ -50,23 +37,26 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
 
         mContext = getApplicationContext();
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
 
+        //binding access to elements view
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        //weatherRVModalArrayList = new ArrayList<>();
-        //weatherRVAdapter = new WeatherRVAdapter(this,weatherRVModalArrayList);
-        //binding.RVWeather.setAdapter(weatherRVAdapter);
+
+        //init recycle view elements
+        weatherRVModalArrayList = new ArrayList<>();
+        weatherRVAdapter = new WeatherRVAdapter(this,weatherRVModalArrayList);
+        binding.RVWeather.setAdapter(weatherRVAdapter);
 
 
 
         mCityLocation="Toulouse";
-        //loadWeatherData(mCityLocation);
-        getWeatherInfo(mCityLocation);
 
+        //look for cities feature
         binding.IVSearch.setOnClickListener(v -> {
             String city = binding.EdtCity.getText().toString();
             if(city.isEmpty()){
@@ -86,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
         RequestQueue requestQueue = Volley.newRequestQueue(MainActivity.this);
 
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, response -> {
-            //weatherRVModalArrayList.clear();
+            weatherRVModalArrayList.clear();
 
             try {
 
@@ -101,6 +91,18 @@ public class MainActivity extends AppCompatActivity {
                 //TODO change background if day or night with picasso
 
                 JSONObject forecastOBj = response.getJSONObject("fcst_day_0");
+                JSONObject hoursCast = forecastOBj.getJSONObject("hourly_data");
+
+                for(int i=0; i<23; i++){
+                    JSONObject hour = hoursCast.getJSONObject(i+"H00");
+                    String hTime = i +"H00";
+                    String hTemp = hour.getString("TMP2m");
+                    String hWindSpeed = hour.getString("WNDSPD10m");
+                    String hIcon = hour.getString("ICON");
+                    weatherRVModalArrayList.add(new WeatherRVModal(hTime,hTemp,hIcon,hWindSpeed));
+                }
+                weatherRVAdapter.notifyDataSetChanged();
+
 
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -113,36 +115,9 @@ public class MainActivity extends AppCompatActivity {
         requestQueue.add(jsonObjectRequest);
     }
 
-    private void loadWeatherData(String city) {
-        String url = "https://www.prevision-meteo.ch/services/json/" + city;
-        RequestQueue queue = Volley.newRequestQueue(mContext);
-
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                response -> {
-
-                    try {
-                        JSONObject jObj = new JSONObject(response);
-                        JSONObject jObjCurrent = jObj.getJSONObject("current_condition");
-                        String tmp = jObjCurrent.getString("tmp");
-                        String condition = jObjCurrent.getString("condition");
-                        String icon = jObjCurrent.getString("icon_big");
-
-                        binding.TVCondition.setText(condition);
-                        binding.TVTemperature.setText(tmp);
-                        Picasso.get().load(icon).into(binding.IVIcon);
-
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }, error -> Log.e(TAG,"That didn't work!"));
-
-        queue.add(stringRequest);
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
-        loadWeatherData("Toulouse");
+        getWeatherInfo(mCityLocation);
     }
 }

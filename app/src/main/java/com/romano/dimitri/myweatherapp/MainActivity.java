@@ -53,58 +53,6 @@ public class MainActivity extends AppCompatActivity {
         mCityLocation="Toulouse";
         loadWeatherData(mCityLocation);
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        this.updateLocation();
-
-    }
-
-    public void updateLocation() {
-        if (ContextCompat.checkSelfPermission(getApplicationContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(getApplicationContext(),
-                Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(getApplicationContext(),
-                Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED) {
-
-            fusedLocationClient.getLastLocation().
-                    addOnSuccessListener(this, location -> {
-                        // Got last known location. In some rare situations this can be null.
-                        if (location != null) {
-                            Double longitude = location.getLongitude();
-                            Double latitude = location.getLatitude();
-                            Geocoder geo = new Geocoder(getApplicationContext(), Locale.getDefault());
-                            List<Address> addresses=null;
-                            try {
-                                addresses = geo.getFromLocation(latitude, longitude, 1);
-                                Log.e((TAG),addresses.get(0).toString());
-                            }catch (Exception e){
-                                Log.e(TAG,e.getMessage());
-                            }
-                            /*if(addresses!=null && addresses.size()>0){
-                                addresses.get(0).
-                            }*/
-                            Log.d(TAG,addresses.get(0).toString());
-                        }
-                    });
-        }else{
-            // Request permission
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.INTERNET},
-                    MULTIPLE_LOCATION_REQUEST);
-        }
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode){
-            case MULTIPLE_LOCATION_REQUEST:{
-                if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED ){
-                    updateLocation();
-                }else{
-                    Toast.makeText(getApplicationContext(),"Permission denied to access device's location", Toast.LENGTH_SHORT).show();
-                }
-            }
-        }
     }
 
     private void loadWeatherData(String city) {

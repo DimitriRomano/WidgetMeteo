@@ -20,22 +20,5 @@
         android:text="@string/appwidget_text"
         android:textSize="24sp"
         android:textStyle="bold|italic" />
-
-
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="132dp"
-        app:cardCornerRadius="10dp"
-        >
-        
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/sky"
-        ></LinearLayout>
-
-
-
-    </androidx.cardview.widget.CardView>
     
 </RelativeLayout>

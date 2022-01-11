@@ -37,7 +37,6 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private Context mContext;
     private static final String TAG = "MainActivity";
-    private FusedLocationProviderClient fusedLocationClient;
     private static final int MULTIPLE_LOCATION_REQUEST = 42;
     private String mCityLocation;
 

@@ -1,11 +1,24 @@
 package com.romano.dimitri.myweatherapp;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 
 import android.Manifest;
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -19,10 +32,15 @@ import com.android.volley.toolbox.Volley;
 
 import com.romano.dimitri.myweatherapp.databinding.ActivityMainBinding;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 
 
@@ -33,6 +51,13 @@ public class MainActivity extends AppCompatActivity {
     private String mCityLocation;
     private ArrayList<WeatherRVModal> weatherRVModalArrayList;
     private WeatherRVAdapter weatherRVAdapter;
+    private DBHandler db;
+
+    private SharedPreferences mPreferencesLog;
+    public static final String PREF = "PREFS_LOG";
+    public static final String PREF_CITY = "PREFS_CITY";
+
+    public static final int PERMISSIONS_REQUEST = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,63 +78,91 @@ public class MainActivity extends AppCompatActivity {
         binding.RVWeather.setAdapter(weatherRVAdapter);
 
 
+        //init sqlite
+        db = DBHandler.getInstance(this);
 
-        mCityLocation="Toulouse";
+        //init sharePreferences
+        mPreferencesLog = this.mContext.getSharedPreferences(PREF,MODE_PRIVATE);
+        mCityLocation=mPreferencesLog.getString(PREF_CITY,"Toulouse");
+
+
+        //check internet connection
+        if(!this.isInternetConnected(this.mContext)){
+            this.loadData();
+        }
 
         //look for cities feature
         binding.IVSearch.setOnClickListener(v -> {
             String city = binding.EdtCity.getText().toString();
             if(city.isEmpty()){
-                Toast.makeText(MainActivity.this,"Please enter a valid city",Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this,"Please enter a  city",Toast.LENGTH_SHORT).show();
             }else{
-                binding.TVCityName.setText(city);
                 getWeatherInfo(city);
+                binding.EdtCity.setText("");
             }
         });
 
 
     }
 
+    //api fetch meteo
     private void getWeatherInfo(String cityName) {
         String url = "https://www.prevision-meteo.ch/services/json/" + cityName;
-        binding.TVCityName.setText(cityName);
-        RequestQueue requestQueue = Volley.newRequestQueue(MainActivity.this);
 
+        RequestQueue requestQueue = Volley.newRequestQueue(MainActivity.this);
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, response -> {
             weatherRVModalArrayList.clear();
 
             try {
+                    String temperature = response.getJSONObject("current_condition").getString("tmp");
+                    String condition = response.getJSONObject("current_condition").getString("condition");
+                    String icon = response.getJSONObject("current_condition").getString("icon_big");
+                    binding.TVCityName.setText(cityName);
+                    binding.TVTemperature.setText(temperature + "°c");
+                    binding.TVCondition.setText(condition);
+                    Picasso.get().load(icon).into(binding.IVIcon);
+                    //save icon for no connection mod
+                        Picasso.get().load(icon).into(picassoImageTarget(getApplicationContext(), "imageDir", cityName+".jpeg"));
 
-                String temperature = response.getJSONObject("current_condition").getString("tmp");
-                String condition = response.getJSONObject("current_condition").getString("condition");
-                String icon = response.getJSONObject("current_condition").getString("icon_big");
+                    //persistence data
+                    if (db.existCity(cityName)) {
+                        db.updateCity(cityName, temperature, condition, icon);
+                    } else {
+                        db.addCity(cityName, temperature, condition, icon);
+                    }
+                    mPreferencesLog.edit().putString(PREF_CITY, cityName).commit();
 
-                binding.TVTemperature.setText(temperature+"°c");
-                binding.TVCondition.setText(condition);
-                Picasso.get().load(icon).into(binding.IVIcon);
 
-                //TODO change background if day or night with picasso
+                    //TODO change background if day or night with picasso
 
-                JSONObject forecastOBj = response.getJSONObject("fcst_day_0");
-                JSONObject hoursCast = forecastOBj.getJSONObject("hourly_data");
+                    JSONObject forecastOBj = response.getJSONObject("fcst_day_0");
+                    JSONObject hoursCast = forecastOBj.getJSONObject("hourly_data");
 
-                for(int i=0; i<23; i++){
-                    JSONObject hour = hoursCast.getJSONObject(i+"H00");
-                    String hTime = i +"H00";
-                    String hTemp = hour.getString("TMP2m");
-                    String hWindSpeed = hour.getString("WNDSPD10m");
-                    String hIcon = hour.getString("ICON");
-                    weatherRVModalArrayList.add(new WeatherRVModal(hTime,hTemp,hIcon,hWindSpeed));
-                }
-                weatherRVAdapter.notifyDataSetChanged();
+                    for (int i = 0; i < 23; i++) {
+                        JSONObject hour = hoursCast.getJSONObject(i + "H00");
+                        String hTime = i + "H00";
+                        String hTemp = hour.getString("TMP2m");
+                        String hWindSpeed = hour.getString("WNDSPD10m");
+                        String hIcon = hour.getString("ICON");
+                        weatherRVModalArrayList.add(new WeatherRVModal(hTime, hTemp, hIcon, hWindSpeed));
+                    }
+                    weatherRVAdapter.notifyDataSetChanged();
 
 
             } catch (JSONException e) {
                 e.printStackTrace();
+                try {
+                    JSONArray errors = response.getJSONArray("errors");
+                    String text_error = errors.getJSONObject(0).getString("text");
+                    Toast.makeText(mContext,text_error,Toast.LENGTH_LONG).show();
+                } catch (JSONException jsonException) {
+                    jsonException.printStackTrace();
+                }
             }
 
         }, error -> {
-            Toast.makeText(MainActivity.this,"Please enter valid city name...",Toast.LENGTH_SHORT).show();
+            Log.e(TAG,"error loading api");
+            Toast.makeText(mContext,"Check is internet is enable, mise à jours impossible !",Toast.LENGTH_LONG).show();
         });
 
         requestQueue.add(jsonObjectRequest);
@@ -118,6 +171,91 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        getWeatherInfo(mCityLocation);
+        if(mCityLocation!=null) {
+            getWeatherInfo(mCityLocation);
+        }
+        if (this.isInternetConnected(mContext) == false ){
+            this.loadData();
+        }
     }
+
+    // connection is enable or not
+    public static boolean isInternetConnected(Context getApplicationContext) {
+        boolean status = false;
+
+        ConnectivityManager cm = (ConnectivityManager) getApplicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if(cm != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (cm.getActiveNetwork() != null && cm.getNetworkCapabilities(cm.getActiveNetwork()) != null) {
+                    // connected to the internet
+                    status = true;
+                }
+
+            } else {
+                if (cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnectedOrConnecting()) {
+                    // connected to the internet
+                    status = true;
+                }
+            }
+        }
+        return status;
+    }
+
+
+    //this method creates a target object that you can use with Picasso
+   private Target picassoImageTarget(Context context, final String imageDir, final String imageName) {
+       Log.d(TAG, " picassoImageTarget");
+       ContextWrapper cw = new ContextWrapper(context);
+       final File directory = cw.getDir(imageDir, Context.MODE_PRIVATE); // path to /data/data/yourapp/app_imageDir
+       return new Target() {
+           @Override
+           public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
+               new Thread(() -> {
+                   final File myImageFile = new File(directory, imageName); // Create image file
+                   FileOutputStream fos = null;
+                   try {
+                       fos = new FileOutputStream(myImageFile);
+                       bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                   } catch (IOException e) {
+                       e.printStackTrace();
+                   } finally {
+                       try {
+                           fos.close();
+                       } catch (IOException e) {
+                           e.printStackTrace();
+                       }
+                   }
+                   Log.i(TAG, "image saved to >>>" + myImageFile.getAbsolutePath());
+
+               }).start();
+           }
+
+           @Override
+           public void onBitmapFailed(Exception e, Drawable errorDrawable) {
+
+           }
+
+           @Override
+           public void onPrepareLoad(Drawable placeHolderDrawable) {
+               if (placeHolderDrawable != null) {}
+           }
+       };
+   }
+
+   private void loadData(){
+       if(mCityLocation !=null && db.existCity(mCityLocation)) {
+           CityWeather cityWeather = db.getCity(mCityLocation);
+           binding.TVCityName.setText(cityWeather.getName());
+           binding.TVTemperature.setText(cityWeather.getTemp() + "°c");
+           binding.TVCondition.setText(cityWeather.getCondition());
+           Log.d(TAG, cityWeather.getIcon());
+               //load image from last save city
+               ContextWrapper cw = new ContextWrapper(getApplicationContext());
+               File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
+               File myImageFile = new File(directory, cityWeather.getName()+".jpeg");
+               Picasso.get().load(myImageFile).into(binding.IVIcon);
+
+       }
+   }
+
 }

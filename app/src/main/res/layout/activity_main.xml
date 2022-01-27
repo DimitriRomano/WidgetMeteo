@@ -137,14 +137,13 @@
                 android:layout_above="@id/RV_Weather"
                 />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/RV_Weather"
-                android:layout_alignParentBottom="true"
-                android:orientation="horizontal"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/RV_Weather"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
 
 

@@ -138,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
                     JSONObject forecastOBj = response.getJSONObject("fcst_day_0");
                     JSONObject hoursCast = forecastOBj.getJSONObject("hourly_data");
 
-                    for (int i = 0; i < 24; i++) {
+                    for (int i = 0; i < 23; i++) {
                         JSONObject hour = hoursCast.getJSONObject(i + "H00");
                         String hTime = i + "H00";
                         String hTemp = hour.getString("TMP2m");

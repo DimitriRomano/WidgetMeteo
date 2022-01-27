@@ -32,10 +32,20 @@ import java.util.function.Function;
 public class ApiLocalisation {
     FusedLocationProviderClient fusedLocationProviderClient;
     List<Function<List<Address>, Boolean>> listeners;
-    String TAG = "XDXD";
     LocationRequest mLocationRequest;
+    private static ApiLocalisation instance = null;
 
-    public ApiLocalisation() {
+    public static ApiLocalisation getInstance() {
+        if (instance != null) {
+            return instance;
+        }
+        instance = new ApiLocalisation();
+        return instance;
+    }
+
+
+
+    private ApiLocalisation() {
         listeners = new ArrayList<>();
         mLocationRequest = LocationRequest.create();
         mLocationRequest.setInterval(5000);
@@ -43,10 +53,7 @@ public class ApiLocalisation {
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
-    public void requestLocalisation(Activity a) {
-        Log.v(TAG, String.valueOf(mLocationRequest.getExpirationTime() - SystemClock.elapsedRealtime()));
-        Log.v(TAG, String.valueOf(mLocationRequest.getMaxWaitTime()));
-        Log.v(TAG, String.valueOf(mLocationRequest.getNumUpdates()));
+    public void updateLocalisation(Activity a) {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(a);
         if (ActivityCompat.checkSelfPermission(a, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(a, new String[]{
@@ -58,7 +65,6 @@ public class ApiLocalisation {
         fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
-                Log.v(TAG, "Location updated");
                 if (locationResult == null) {
                     listeners.forEach(listVoidFunction -> listVoidFunction.apply(null));
                     return;
@@ -71,7 +77,6 @@ public class ApiLocalisation {
                     );
                     listeners.forEach(listVoidFunction -> listVoidFunction.apply(addressList));
                 } catch (IOException e) {
-                    Log.v(TAG, "ERROR getting list");
                     e.printStackTrace();
                 }
                 fusedLocationProviderClient.removeLocationUpdates(this);
@@ -80,7 +85,6 @@ public class ApiLocalisation {
     }
 
     public void onReceive(Function<List<Address>, Boolean> fn) {
-        Log.v(TAG, "Adding Listener onRecieve");
         listeners.add(fn);
     }
 

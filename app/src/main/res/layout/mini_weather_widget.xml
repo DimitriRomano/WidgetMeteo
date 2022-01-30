@@ -1,0 +1,54 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.MyWeatherApp.AppWidget.Container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:theme="@style/Theme.MyWeatherApp.AppWidgetContainer">
+
+    <ImageView
+        android:id="@+id/WIDGET_WEATHER_ICON"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:srcCompat="@tools:sample/avatars" />
+
+    <TextView
+        android:id="@+id/WIDGET_CITY_NAME"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16sp"
+        android:layout_toRightOf="@id/WIDGET_WEATHER_ICON"
+        android:layout_weight="1"
+        android:text="TextView"
+        android:textSize="32sp" />
+
+    <TextView
+        android:id="@+id/WIDGET_TEMPERATURE"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16sp"
+        android:layout_marginTop="48sp"
+        android:layout_toRightOf="@id/WIDGET_WEATHER_ICON"
+        android:text="TextView"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/WIDGET_CONDITION"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="52sp"
+        android:layout_toRightOf="@id/WIDGET_TEMPERATURE"
+        android:text="TextView"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/WIDGET_REFRESH_BUTTON"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/WIDGET_CITY_NAME"
+        android:contentDescription="R"
+        android:text="R"
+        android:textAlignment="center" />
+
+</RelativeLayout>

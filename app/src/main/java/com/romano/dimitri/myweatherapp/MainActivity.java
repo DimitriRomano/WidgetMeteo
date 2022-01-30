@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
 
         mContext = getApplicationContext();
@@ -75,21 +75,24 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // Force update address on app launch
+        ApiLocalisation.getInstance().updateLocalisation(this);
+
         //init recycle view elements
         weatherRVModalArrayList = new ArrayList<>();
-        weatherRVAdapter = new WeatherRVAdapter(this,weatherRVModalArrayList);
+        weatherRVAdapter = new WeatherRVAdapter(this, weatherRVModalArrayList);
         binding.RVWeather.setAdapter(weatherRVAdapter);
 
 
         //init sqlite
         db = DBHandler.getInstance(this);
         //init sharePreferences
-        mPreferencesLog = this.mContext.getSharedPreferences(PREF,MODE_PRIVATE);
-        mCityLocation=mPreferencesLog.getString(PREF_CITY,"Toulouse");
+        mPreferencesLog = this.mContext.getSharedPreferences(PREF, MODE_PRIVATE);
+        mCityLocation = mPreferencesLog.getString(PREF_CITY, "Toulouse");
 
 
         //check internet connection
-        if(!this.isInternetConnected(this.mContext)){
+        if (!this.isInternetConnected(this.mContext)) {
             this.loadData();
         }
 
@@ -103,9 +106,9 @@ public class MainActivity extends AppCompatActivity {
         //look for cities feature
         binding.IVSearch.setOnClickListener(v -> {
             String city = binding.EdtCity.getText().toString();
-            if(city.isEmpty()){
-                Toast.makeText(MainActivity.this,"Please enter a  city",Toast.LENGTH_SHORT).show();
-            }else{
+            if (city.isEmpty()) {
+                Toast.makeText(MainActivity.this, "Please enter a  city", Toast.LENGTH_SHORT).show();
+            } else {
                 getWeatherInfo(city);
                 binding.EdtCity.setText("");
             }
@@ -115,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //api fetch meteo
-    private void getWeatherInfo(String cityName) {
+    public void getWeatherInfo(String cityName) {
         String url = "https://www.prevision-meteo.ch/services/json/" + cityName;
 
         RequestQueue requestQueue = Volley.newRequestQueue(MainActivity.this);
@@ -136,44 +139,44 @@ public class MainActivity extends AppCompatActivity {
                     //save icon for no connection mod
                         Picasso.get().load(icon).into(picassoImageTarget(getApplicationContext(), "imageDir", cityName+".jpeg"));
 
-                    //persistence data
-                    if (db.existCity(cityName)) {
-                        db.updateCity(cityName, temperature, condition, icon);
-                    } else {
-                        db.addCity(cityName, temperature, condition, icon);
-                    }
-                    mPreferencesLog.edit().putString(PREF_CITY, cityName).commit();
+                //persistence data
+                if (db.existCity(cityName)) {
+                    db.updateCity(cityName, temperature, condition, icon);
+                } else {
+                    db.addCity(cityName, temperature, condition, icon);
+                }
+                mPreferencesLog.edit().putString(PREF_CITY, cityName).commit();
 
 
-                    //TODO change background if day or night with picasso
+                //TODO change background if day or night with picasso
 
-                    JSONObject forecastOBj = response.getJSONObject("fcst_day_0");
-                    JSONObject hoursCast = forecastOBj.getJSONObject("hourly_data");
+                JSONObject forecastOBj = response.getJSONObject("fcst_day_0");
+                JSONObject hoursCast = forecastOBj.getJSONObject("hourly_data");
 
-                    for (int i = 0; i < 23; i++) {
-                        JSONObject hour = hoursCast.getJSONObject(i + "H00");
-                        String hTime = i + "H00";
-                        String hTemp = hour.getString("TMP2m");
-                        String hWindSpeed = hour.getString("WNDSPD10m");
-                        String hIcon = hour.getString("ICON");
-                        weatherRVModalArrayList.add(new WeatherRVModal(hTime, hTemp, hIcon, hWindSpeed));
-                    }
-                    weatherRVAdapter.notifyDataSetChanged();
+                for (int i = 0; i < 23; i++) {
+                    JSONObject hour = hoursCast.getJSONObject(i + "H00");
+                    String hTime = i + "H00";
+                    String hTemp = hour.getString("TMP2m");
+                    String hWindSpeed = hour.getString("WNDSPD10m");
+                    String hIcon = hour.getString("ICON");
+                    weatherRVModalArrayList.add(new WeatherRVModal(hTime, hTemp, hIcon, hWindSpeed));
+                }
+                weatherRVAdapter.notifyDataSetChanged();
 
             } catch (JSONException e) {
                 e.printStackTrace();
                 try {
                     JSONArray errors = response.getJSONArray("errors");
                     String text_error = errors.getJSONObject(0).getString("text");
-                    Toast.makeText(mContext,text_error,Toast.LENGTH_LONG).show();
+                    Toast.makeText(mContext, text_error, Toast.LENGTH_LONG).show();
                 } catch (JSONException jsonException) {
                     jsonException.printStackTrace();
                 }
             }
 
         }, error -> {
-            Log.e(TAG,"error loading api");
-            Toast.makeText(mContext,"Check is internet is enable, mise à jours impossible !",Toast.LENGTH_LONG).show();
+            Log.e(TAG, "error loading api");
+            Toast.makeText(mContext, "Check is internet is enable, mise à jours impossible !", Toast.LENGTH_LONG).show();
         });
 
         requestQueue.add(jsonObjectRequest);
@@ -182,10 +185,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if(mCityLocation!=null) {
+        if (mCityLocation != null) {
             getWeatherInfo(mCityLocation);
         }
-        if (this.isInternetConnected(mContext) == false ){
+        if (this.isInternetConnected(mContext) == false) {
             this.loadData();
         }
     }
@@ -195,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
         boolean status = false;
 
         ConnectivityManager cm = (ConnectivityManager) getApplicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if(cm != null) {
+        if (cm != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (cm.getActiveNetwork() != null && cm.getNetworkCapabilities(cm.getActiveNetwork()) != null) {
                     // connected to the internet
@@ -214,44 +217,45 @@ public class MainActivity extends AppCompatActivity {
 
 
     //this method creates a target object that you can use with Picasso
-   private Target picassoImageTarget(Context context, final String imageDir, final String imageName) {
-       Log.d(TAG, " picassoImageTarget");
-       ContextWrapper cw = new ContextWrapper(context);
-       final File directory = cw.getDir(imageDir, Context.MODE_PRIVATE); // path to /data/data/yourapp/app_imageDir
-       return new Target() {
-           @Override
-           public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
-               new Thread(() -> {
-                   final File myImageFile = new File(directory, imageName); // Create image file
-                   FileOutputStream fos = null;
-                   try {
-                       fos = new FileOutputStream(myImageFile);
-                       bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                   } catch (IOException e) {
-                       e.printStackTrace();
-                   } finally {
-                       try {
-                           fos.close();
-                       } catch (IOException e) {
-                           e.printStackTrace();
-                       }
-                   }
-                   Log.i(TAG, "image saved to >>>" + myImageFile.getAbsolutePath());
+    private Target picassoImageTarget(Context context, final String imageDir, final String imageName) {
+        Log.d(TAG, " picassoImageTarget");
+        ContextWrapper cw = new ContextWrapper(context);
+        final File directory = cw.getDir(imageDir, Context.MODE_PRIVATE); // path to /data/data/yourapp/app_imageDir
+        return new Target() {
+            @Override
+            public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
+                new Thread(() -> {
+                    final File myImageFile = new File(directory, imageName); // Create image file
+                    FileOutputStream fos = null;
+                    try {
+                        fos = new FileOutputStream(myImageFile);
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        try {
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    Log.i(TAG, "image saved to >>>" + myImageFile.getAbsolutePath());
 
-               }).start();
-           }
+                }).start();
+            }
 
-           @Override
-           public void onBitmapFailed(Exception e, Drawable errorDrawable) {
+            @Override
+            public void onBitmapFailed(Exception e, Drawable errorDrawable) {
 
-           }
+            }
 
-           @Override
-           public void onPrepareLoad(Drawable placeHolderDrawable) {
-               if (placeHolderDrawable != null) {}
-           }
-       };
-   }
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+                if (placeHolderDrawable != null) {
+                }
+            }
+        };
+    }
 
    //charger image jour/nuit selon condition
    private void loadBackImage(String daytime, String nighttime){
@@ -287,7 +291,6 @@ public class MainActivity extends AppCompatActivity {
            File myBackgroundImage = new File(directory, "lastBackground.jpeg");
            Picasso.get().load(myBackgroundImage).into(binding.IVBack);
 
-       }
-   }
-
+        }
+    }
 }

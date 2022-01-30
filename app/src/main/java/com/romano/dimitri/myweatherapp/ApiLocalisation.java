@@ -2,6 +2,7 @@ package com.romano.dimitri.myweatherapp;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -83,6 +84,35 @@ public class ApiLocalisation {
             }
         }, null);
     }
+
+    public void updateLocalisation(Context ctx) {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(ctx);
+        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        // Forcefully update the location
+        fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    listeners.forEach(listVoidFunction -> listVoidFunction.apply(null));
+                    return;
+                }
+                Geocoder geocoder = new Geocoder(ctx, Locale.getDefault());
+                try {
+                    Location location = locationResult.getLastLocation();
+                    List<Address> addressList = geocoder.getFromLocation(
+                            location.getLatitude(), location.getLongitude(), 1
+                    );
+                    listeners.forEach(listVoidFunction -> listVoidFunction.apply(addressList));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                fusedLocationProviderClient.removeLocationUpdates(this);
+            }
+        }, null);
+    }
+
 
     public void onReceive(Function<List<Address>, Boolean> fn) {
         listeners.add(fn);

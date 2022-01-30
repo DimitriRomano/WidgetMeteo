@@ -8,9 +8,10 @@ public class CityWeather implements Serializable {
     private String condition;
     private String icon;
 
-    public CityWeather(){
+    public CityWeather() {
         //default;
     }
+
     public CityWeather(String name, String temp, String condition, String icon) {
         this.name = name;
         this.temp = temp;

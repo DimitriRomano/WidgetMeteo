@@ -41,7 +41,10 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -80,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
 
         //init sqlite
         db = DBHandler.getInstance(this);
-
         //init sharePreferences
         mPreferencesLog = this.mContext.getSharedPreferences(PREF,MODE_PRIVATE);
         mCityLocation=mPreferencesLog.getString(PREF_CITY,"Toulouse");
@@ -91,6 +93,13 @@ public class MainActivity extends AppCompatActivity {
             this.loadData();
         }
 
+        /*String currentTime = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
+        Log.d(TAG,currentTime);
+        if(currentTime < "05:00"){
+            Picasso.get().load("https://images.unsplash.com/photo-1435224654926-ecc9f7fa028c?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1887&q=80").into(binding.IVBack);
+        }else{
+            Picasso.get().load("https://images.unsplash.com/photo-1559628376-f3fe5f782a2e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=431&q=80").into(binding.IVBack);
+        }*/
         //look for cities feature
         binding.IVSearch.setOnClickListener(v -> {
             String city = binding.EdtCity.getText().toString();
@@ -117,6 +126,9 @@ public class MainActivity extends AppCompatActivity {
                     String temperature = response.getJSONObject("current_condition").getString("tmp");
                     String condition = response.getJSONObject("current_condition").getString("condition");
                     String icon = response.getJSONObject("current_condition").getString("icon_big");
+                    String daytime = response.getJSONObject("city_info").getString("sunrise");
+                    String nightime = response.getJSONObject("city_info").getString("sunset");
+                    this.loadBackImage(daytime,nightime);
                     binding.TVCityName.setText(cityName);
                     binding.TVTemperature.setText(temperature + "°c");
                     binding.TVCondition.setText(condition);
@@ -147,7 +159,6 @@ public class MainActivity extends AppCompatActivity {
                         weatherRVModalArrayList.add(new WeatherRVModal(hTime, hTemp, hIcon, hWindSpeed));
                     }
                     weatherRVAdapter.notifyDataSetChanged();
-
 
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -242,6 +253,25 @@ public class MainActivity extends AppCompatActivity {
        };
    }
 
+   //charger image jour/nuit selon condition
+   private void loadBackImage(String daytime, String nighttime){
+       String currentTime = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
+       int H_current = Integer.parseInt(currentTime.split(":")[0]);
+       int H_daytime = Integer.parseInt(daytime.split(":")[0]);
+       int H_nighttime = Integer.parseInt(nighttime.split(":")[0]);
+       int M_current = Integer.parseInt(currentTime.split(":")[1]);
+       int M_daytime = Integer.parseInt(daytime.split(":")[1]);
+       int M_nighttime = Integer.parseInt(nighttime.split(":")[1]);
+       if((H_current>H_daytime && H_current< H_nighttime ) || (H_current==H_daytime && M_current>=M_daytime) || (H_current==H_nighttime && M_current<M_nighttime)){
+           Picasso.get().load("https://images.unsplash.com/photo-1559628376-f3fe5f782a2e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=431&q=80").into(binding.IVBack);
+           Picasso.get().load("https://images.unsplash.com/photo-1559628376-f3fe5f782a2e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=431&q=80").into(picassoImageTarget(getApplicationContext(), "imageDir", "lastBackground.jpeg"));
+       }else{
+           Picasso.get().load("https://images.unsplash.com/photo-1435224654926-ecc9f7fa028c?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1887&q=80").into(binding.IVBack);
+           Picasso.get().load("https://images.unsplash.com/photo-1435224654926-ecc9f7fa028c?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1887&q=80").into(picassoImageTarget(getApplicationContext(), "imageDir", "lastBackground.jpeg"));
+       }
+   }
+
+   //when internet is off
    private void loadData(){
        if(mCityLocation !=null && db.existCity(mCityLocation)) {
            CityWeather cityWeather = db.getCity(mCityLocation);
@@ -254,6 +284,8 @@ public class MainActivity extends AppCompatActivity {
                File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
                File myImageFile = new File(directory, cityWeather.getName()+".jpeg");
                Picasso.get().load(myImageFile).into(binding.IVIcon);
+           File myBackgroundImage = new File(directory, "lastBackground.jpeg");
+           Picasso.get().load(myBackgroundImage).into(binding.IVBack);
 
        }
    }

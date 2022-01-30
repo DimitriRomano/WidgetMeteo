@@ -6,17 +6,22 @@ import androidx.core.content.ContextCompat;
 
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -51,7 +56,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private Context mContext;
-    private static final String TAG = "XDXD";
+    private static final String TAG = "MainActivity";
     private String mCityLocation;
     private ArrayList<WeatherRVModal> weatherRVModalArrayList;
     private WeatherRVAdapter weatherRVAdapter;
@@ -61,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
     public static final String PREF = "PREFS_LOG";
     public static final String PREF_CITY = "PREFS_CITY";
 
-    public static final int PERMISSIONS_REQUEST = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,10 +85,22 @@ public class MainActivity extends AppCompatActivity {
         ApiLocalisation.getInstance().forceUpdate(this);
 
         binding.button.setOnClickListener(v -> {
-            ApiLocalisation.getInstance().forceUpdate(this);
+            if(this.CheckGpsStatus()){
+                ApiLocalisation.getInstance().forceUpdate(this);
+                ApiLocalisation.getInstance().onReceive("MainActivity", address -> {
+                    String newCity = address.getLocality();
+                    this.getWeatherInfo(newCity);
+                    Log.v(TAG, "[MA] City: " + address.getLocality());
+                    return true;
+                });
+            }else{
+                this.locationEnabled();
+            }
         });
 
         ApiLocalisation.getInstance().onReceive("MainActivity", address -> {
+            String newCity = address.getLocality();
+            this.getWeatherInfo(newCity);
             Log.v(TAG, "[MA] City: " + address.getLocality());
             return true;
         });
@@ -101,19 +117,11 @@ public class MainActivity extends AppCompatActivity {
         mPreferencesLog = this.mContext.getSharedPreferences(PREF, MODE_PRIVATE);
         mCityLocation = mPreferencesLog.getString(PREF_CITY, "Toulouse");
 
-
         //check internet connection
         if (!this.isInternetConnected(this.mContext)) {
             this.loadData();
         }
 
-        /*String currentTime = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
-        Log.d(TAG,currentTime);
-        if(currentTime < "05:00"){
-            Picasso.get().load("https://images.unsplash.com/photo-1435224654926-ecc9f7fa028c?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1887&q=80").into(binding.IVBack);
-        }else{
-            Picasso.get().load("https://images.unsplash.com/photo-1559628376-f3fe5f782a2e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=431&q=80").into(binding.IVBack);
-        }*/
         //look for cities feature
         binding.IVSearch.setOnClickListener(v -> {
             String city = binding.EdtCity.getText().toString();
@@ -126,6 +134,35 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
+    }
+
+    //method to check if provider are enable on check localisation button
+    private void locationEnabled(){
+        boolean isEnable =this.CheckGpsStatus();
+
+        if (!isEnable) {
+            new AlertDialog.Builder(this )
+                    .setMessage( "GPS not Enable please turn on" )
+                    .setPositiveButton( "Settings" , new
+                            DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick (DialogInterface paramDialogInterface , int paramInt) {
+                                    startActivity( new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS )) ;
+                                }
+                            })
+                    .setNegativeButton( "Cancel" , null )
+                    .show() ;
+        }
+    }
+
+    //checkc is button is activate
+    public boolean CheckGpsStatus() {
+
+        LocationManager locationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
+
+        boolean GpsStatus = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+        return GpsStatus;
     }
 
     //api fetch meteo
@@ -157,6 +194,7 @@ public class MainActivity extends AppCompatActivity {
                     db.addCity(cityName, temperature, condition, icon);
                 }
                 mPreferencesLog.edit().putString(PREF_CITY, cityName).commit();
+                mCityLocation = cityName;
 
 
                 //TODO change background if day or night with picasso
@@ -196,7 +234,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (mCityLocation != null) {
+        if(this.CheckGpsStatus()){
+            ApiLocalisation.getInstance().forceUpdate(this);
+        }else{
             getWeatherInfo(mCityLocation);
         }
         if (this.isInternetConnected(mContext) == false) {

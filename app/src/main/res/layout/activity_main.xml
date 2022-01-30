@@ -142,8 +142,9 @@
             android:id="@+id/button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Button" />
-
+            android:background="@android:color/transparent"
+            android:textColor="@color/white"
+            android:text="Refresh localisation"/>
 
     </RelativeLayout>
 

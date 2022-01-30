@@ -25,7 +25,7 @@ import org.json.JSONObject;
  */
 public class MiniWeatherWidget extends AppWidgetProvider {
 
-    private static String sLocation = "Toulouse";
+    private static String sLocation = "Paris";
 
 
     static void updateAppWidget(Context context, AppWidgetManager appWidgetManager,
@@ -47,7 +47,6 @@ public class MiniWeatherWidget extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.WIDGET_REFRESH_BUTTON, pendingIntent);
 
 
-
         Picasso.get().load(city.getIcon()).into(views, R.id.WIDGET_WEATHER_ICON, new int[]{appWidgetId});
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
@@ -64,19 +63,24 @@ public class MiniWeatherWidget extends AppWidgetProvider {
         // Enter relevant functionality for when the first widget is created
         ApiLocalisation.getInstance().onReceive(addresses -> {
             Address address = addresses.get(0);
+            Log.v("XDXD", "Current address: " + String.valueOf(address));
             sLocation = address.getLocality();
+            getWeatherInfo(context, sLocation);
             return true;
         });
+        ApiLocalisation.getInstance().updateLocalisation(context);
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
-        Log.v("XDXD", "RECIEVED");
+        Log.v("XDXD", "RECEIVED");
         ApiLocalisation.getInstance().updateLocalisation(context);
+        getWeatherInfo(context, sLocation);
     }
 
     public static void getWeatherInfo(Context ctx, String cityName) {
+        Log.v("XDXD", "GET WEATHER INFO: " + cityName);
         String url = "https://www.prevision-meteo.ch/services/json/" + cityName;
 
         RequestQueue requestQueue = Volley.newRequestQueue(ctx);
@@ -86,50 +90,32 @@ public class MiniWeatherWidget extends AppWidgetProvider {
                 String temperature = response.getJSONObject("current_condition").getString("tmp");
                 String condition = response.getJSONObject("current_condition").getString("condition");
                 String icon = response.getJSONObject("current_condition").getString("icon_big");
-
-                Picasso.get().load(icon).into(binding.IVIcon);
-                //save icon for no connection mod
-                Picasso.get().load(icon).into(picassoImageTarget(getApplicationContext(), "imageDir", cityName + ".jpeg"));
-
-                //persistence data
+                Log.v("XDXD", "DATA: " + cityName + ", " + temperature + ", " + condition + ", " + icon);
+                DBHandler db = DBHandler.getInstance(ctx);
                 if (db.existCity(cityName)) {
                     db.updateCity(cityName, temperature, condition, icon);
                 } else {
                     db.addCity(cityName, temperature, condition, icon);
                 }
-                mPreferencesLog.edit().putString(PREF_CITY, cityName).commit();
-
-
-                //TODO change background if day or night with picasso
-
-                JSONObject forecastOBj = response.getJSONObject("fcst_day_0");
-                JSONObject hoursCast = forecastOBj.getJSONObject("hourly_data");
-
-                for (int i = 0; i < 23; i++) {
-                    JSONObject hour = hoursCast.getJSONObject(i + "H00");
-                    String hTime = i + "H00";
-                    String hTemp = hour.getString("TMP2m");
-                    String hWindSpeed = hour.getString("WNDSPD10m");
-                    String hIcon = hour.getString("ICON");
-                    weatherRVModalArrayList.add(new WeatherRVModal(hTime, hTemp, hIcon, hWindSpeed));
-                }
-                weatherRVAdapter.notifyDataSetChanged();
-
-
+                RemoteViews views = new RemoteViews(ctx.getPackageName(), R.layout.mini_weather_widget);
+                CityWeather city = db.getCity(sLocation);
+                views.setTextViewText(R.id.WIDGET_CITY_NAME, cityName);
+                views.setTextViewText(R.id.WIDGET_TEMPERATURE, city.getTemp() + "°c");
+                views.setTextViewText(R.id.WIDGET_CONDITION, "[" + city.getCondition() + "]");
             } catch (JSONException e) {
                 e.printStackTrace();
                 try {
                     JSONArray errors = response.getJSONArray("errors");
                     String text_error = errors.getJSONObject(0).getString("text");
-                    Toast.makeText(mContext, text_error, Toast.LENGTH_LONG).show();
+                    Toast.makeText(ctx, text_error, Toast.LENGTH_LONG).show();
                 } catch (JSONException jsonException) {
                     jsonException.printStackTrace();
                 }
             }
-
         }, error -> {
-            Log.e(TAG, "error loading api");
-            Toast.makeText(mContext, "Check is internet is enable, mise à jours impossible !", Toast.LENGTH_LONG).show();
+            Log.e("XDXD", "error loading api");
+            error.printStackTrace();
+            Toast.makeText(ctx, "Error !", Toast.LENGTH_LONG).show();
         });
 
         requestQueue.add(jsonObjectRequest);

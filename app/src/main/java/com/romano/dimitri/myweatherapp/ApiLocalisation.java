@@ -45,7 +45,6 @@ public class ApiLocalisation {
     }
 
 
-
     private ApiLocalisation() {
         listeners = new ArrayList<>();
         mLocationRequest = LocationRequest.create();
@@ -86,8 +85,10 @@ public class ApiLocalisation {
     }
 
     public void updateLocalisation(Context ctx) {
+        Log.v("XDXD", "FORCE UPDATE");
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(ctx);
         if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.v("XDXD", "FORCE UPDATE NO PERMS");
             return;
         }
         // Forcefully update the location
@@ -95,6 +96,7 @@ public class ApiLocalisation {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult == null) {
+                    Log.v("XDXD", "NO LOCATION");
                     listeners.forEach(listVoidFunction -> listVoidFunction.apply(null));
                     return;
                 }
@@ -104,6 +106,8 @@ public class ApiLocalisation {
                     List<Address> addressList = geocoder.getFromLocation(
                             location.getLatitude(), location.getLongitude(), 1
                     );
+
+                    Log.v("XDXD", "CALLING SHITEITIT");
                     listeners.forEach(listVoidFunction -> listVoidFunction.apply(addressList));
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -115,6 +119,7 @@ public class ApiLocalisation {
 
 
     public void onReceive(Function<List<Address>, Boolean> fn) {
+        Log.v("XDXD", "New Listener");
         listeners.add(fn);
     }
 

@@ -21,6 +21,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -69,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
 
+
         mContext = getApplicationContext();
 
         //binding access to elements view
@@ -77,6 +79,15 @@ public class MainActivity extends AppCompatActivity {
 
         // Force update address on app launch
         ApiLocalisation.getInstance().updateLocalisation(this);
+
+        binding.button.setOnClickListener(v -> {
+            ApiLocalisation.getInstance().updateLocalisation(this);
+        });
+
+        ApiLocalisation.getInstance().onReceive(addresses -> {
+            Log.v("XDXD", String.valueOf(addresses.get(0).getLocality()));
+            return true;
+        });
 
         //init recycle view elements
         weatherRVModalArrayList = new ArrayList<>();

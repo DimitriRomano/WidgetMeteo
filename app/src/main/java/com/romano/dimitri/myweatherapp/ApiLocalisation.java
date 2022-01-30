@@ -24,16 +24,20 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.function.Function;
 
 
 public class ApiLocalisation {
+    private static final String TAG = "DEBUG_";
+
     FusedLocationProviderClient fusedLocationProviderClient;
-    List<Function<List<Address>, Boolean>> listeners;
+    Map<String, Function<Address, Boolean>> listeners;
     LocationRequest mLocationRequest;
+    private String lastCity;
     private static ApiLocalisation instance = null;
 
     public static ApiLocalisation getInstance() {
@@ -46,14 +50,15 @@ public class ApiLocalisation {
 
 
     private ApiLocalisation() {
-        listeners = new ArrayList<>();
+        lastCity = "";
+        listeners = new HashMap<>();
         mLocationRequest = LocationRequest.create();
         mLocationRequest.setInterval(5000);
         mLocationRequest.setFastestInterval(5000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
-    public void updateLocalisation(Activity a) {
+    public void forceUpdate(Activity a) {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(a);
         if (ActivityCompat.checkSelfPermission(a, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(a, new String[]{
@@ -61,12 +66,11 @@ public class ApiLocalisation {
                     Manifest.permission.ACCESS_FINE_LOCATION
             }, 100);
         }
-        // Forcefully update the location
         fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult == null) {
-                    listeners.forEach(listVoidFunction -> listVoidFunction.apply(null));
+                    listeners.forEach((_key, cbFn) -> cbFn.apply(null));
                     return;
                 }
                 Geocoder geocoder = new Geocoder(a, Locale.getDefault());
@@ -75,7 +79,9 @@ public class ApiLocalisation {
                     List<Address> addressList = geocoder.getFromLocation(
                             location.getLatitude(), location.getLongitude(), 1
                     );
-                    listeners.forEach(listVoidFunction -> listVoidFunction.apply(addressList));
+                    Address address = addressList.get(0);
+                    lastCity = address.getLocality();
+                    listeners.forEach((_key, cbFn) -> cbFn.apply(address));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -84,31 +90,29 @@ public class ApiLocalisation {
         }, null);
     }
 
-    public void updateLocalisation(Context ctx) {
-        Log.v("XDXD", "FORCE UPDATE");
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(ctx);
-        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.v("XDXD", "FORCE UPDATE NO PERMS");
+
+    public void forceUpdate(Context c) {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(c);
+        if (ActivityCompat.checkSelfPermission(c, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "No permissions");
             return;
         }
-        // Forcefully update the location
         fusedLocationProviderClient.requestLocationUpdates(mLocationRequest, new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult == null) {
-                    Log.v("XDXD", "NO LOCATION");
-                    listeners.forEach(listVoidFunction -> listVoidFunction.apply(null));
+                    listeners.forEach((_key, cbFn) -> cbFn.apply(null));
                     return;
                 }
-                Geocoder geocoder = new Geocoder(ctx, Locale.getDefault());
+                Geocoder geocoder = new Geocoder(c, Locale.getDefault());
                 try {
                     Location location = locationResult.getLastLocation();
                     List<Address> addressList = geocoder.getFromLocation(
                             location.getLatitude(), location.getLongitude(), 1
                     );
-
-                    Log.v("XDXD", "CALLING SHITEITIT");
-                    listeners.forEach(listVoidFunction -> listVoidFunction.apply(addressList));
+                    Address address = addressList.get(0);
+                    lastCity = address.getLocality();
+                    listeners.forEach((_key, cbFn) -> cbFn.apply(address));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -118,9 +122,13 @@ public class ApiLocalisation {
     }
 
 
-    public void onReceive(Function<List<Address>, Boolean> fn) {
-        Log.v("XDXD", "New Listener");
-        listeners.add(fn);
+    public void onReceive(String uniqueId, Function<Address, Boolean> fn) {
+        Log.v(TAG, "Listener added: (" + uniqueId + ");");
+        listeners.put(uniqueId, fn);
+    }
+
+    public String getLastCity() {
+        return lastCity;
     }
 
 }

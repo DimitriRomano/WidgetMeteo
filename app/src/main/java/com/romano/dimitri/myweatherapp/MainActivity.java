@@ -51,7 +51,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private Context mContext;
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "XDXD";
     private String mCityLocation;
     private ArrayList<WeatherRVModal> weatherRVModalArrayList;
     private WeatherRVAdapter weatherRVAdapter;
@@ -78,14 +78,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         // Force update address on app launch
-        ApiLocalisation.getInstance().updateLocalisation(this);
+        ApiLocalisation.getInstance().forceUpdate(this);
 
         binding.button.setOnClickListener(v -> {
-            ApiLocalisation.getInstance().updateLocalisation(this);
+            ApiLocalisation.getInstance().forceUpdate(this);
         });
 
-        ApiLocalisation.getInstance().onReceive(addresses -> {
-            Log.v("XDXD", String.valueOf(addresses.get(0).getLocality()));
+        ApiLocalisation.getInstance().onReceive("MainActivity", address -> {
+            Log.v(TAG, "[MA] City: " + address.getLocality());
             return true;
         });
 
